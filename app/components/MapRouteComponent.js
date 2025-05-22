@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ const MapRouteComponent = () => {
   const [loading, setLoading] = useState(false);
   const [travelTime, setTravelTime] = useState(null);
   const [safetyPercentage, setSafetyPercentage] = useState(null);
+  const router = useRouter();
 
   // Fonction pour mettre à jour la position actuelle
   const updateCurrentLocation = async () => {
@@ -235,7 +237,10 @@ const MapRouteComponent = () => {
               <Text style={styles.saferWayText}>Safer way</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.infoButton}>
+            <TouchableOpacity
+              style={styles.infoButton}
+              onPress={() => router.push("/helpScreen")}
+            >
               <Text style={styles.infoButtonText}>Info and help</Text>
             </TouchableOpacity>
           </View>
