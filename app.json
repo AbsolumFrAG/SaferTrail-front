@@ -40,11 +40,15 @@
         {
           "locationAlwaysAndWhenInUsePermission": "This app needs access to location when open and in the background."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    "permissions": [
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION"
+    ]
   }
 }

@@ -1,8 +1,8 @@
-import React from "react";
+import { JSX } from "react";
 import { StyleSheet, View } from "react-native";
 import MapRouteComponent from "./components/MapRouteComponent";
 
-export default function index() {
+export default function Index(): JSX.Element {
   return (
     <View style={styles.container}>
       <MapRouteComponent />

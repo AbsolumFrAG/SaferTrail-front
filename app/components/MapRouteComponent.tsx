@@ -1,6 +1,6 @@
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -9,30 +9,56 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import MapView, {
+  MapPressEvent,
+  Marker,
+  Polyline,
+  Region,
+} from "react-native-maps";
 
-const MapRouteComponent = () => {
-  const [region, setRegion] = useState({
+interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
+
+interface ColoredSegment {
+  coordinates: Coordinate[];
+  color: string;
+  isDangerous: boolean;
+}
+
+interface OSRMResponse {
+  code: string;
+  routes: {
+    geometry: {
+      coordinates: number[][];
+    };
+    duration: number;
+  }[];
+}
+
+const MapRouteComponent: FC = () => {
+  const [region, setRegion] = useState<Region>({
     latitude: 48.8566,
     longitude: 2.3522,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
 
-  const [startPoint, setStartPoint] = useState(null);
-  const [endPoint, setEndPoint] = useState(null);
-  const [route, setRoute] = useState([]);
-  const [coloredSegments, setColoredSegments] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [travelTime, setTravelTime] = useState(null);
-  const [safetyPercentage, setSafetyPercentage] = useState(null);
+  const [startPoint, setStartPoint] = useState<Coordinate | null>(null);
+  const [endPoint, setEndPoint] = useState<Coordinate | null>(null);
+  const [route, setRoute] = useState<Coordinate[]>([]);
+  const [coloredSegments, setColoredSegments] = useState<ColoredSegment[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [travelTime, setTravelTime] = useState<number | null>(null);
+  const [safetyPercentage, setSafetyPercentage] = useState<number | null>(null);
   const router = useRouter();
 
   // Fonction pour mettre à jour la position actuelle
-  const updateCurrentLocation = async () => {
+  const updateCurrentLocation = async (): Promise<void> => {
     try {
-      let location = await Location.getCurrentPositionAsync({});
-      const newPosition = {
+      const location = await Location.getCurrentPositionAsync({});
+      const newPosition: Coordinate = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       };
@@ -40,7 +66,7 @@ const MapRouteComponent = () => {
 
       // Recalculer l'itinéraire si une destination est définie
       if (endPoint) {
-        getRoute(newPosition, endPoint);
+        await getRoute(newPosition, endPoint);
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la position:", error);
@@ -49,15 +75,15 @@ const MapRouteComponent = () => {
 
   // Demander la permission de localisation et définir le point de départ
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+    (async (): Promise<void> => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("Permission refusée", "Permission de localisation refusée");
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      const currentPosition = {
+      const location = await Location.getCurrentPositionAsync({});
+      const currentPosition: Coordinate = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       };
@@ -74,21 +100,23 @@ const MapRouteComponent = () => {
   }, []);
 
   // Fonction pour obtenir l'itinéraire depuis OSRM
-  const getRoute = async (start, end) => {
+  const getRoute = async (
+    start: Coordinate,
+    end: Coordinate
+  ): Promise<void> => {
     setLoading(true);
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
       const response = await fetch(url);
-      const data = await response.json();
+      const data: OSRMResponse = await response.json();
 
       if (data.code === "Ok" && data.routes.length > 0) {
-        const coordinates = data.routes[0].geometry.coordinates.map(
-          (coord) => ({
+        const coordinates: Coordinate[] =
+          data.routes[0].geometry.coordinates.map((coord: number[]) => ({
             latitude: coord[1],
             longitude: coord[0],
-          })
-        );
+          }));
 
         setRoute(coordinates);
         setTravelTime(Math.round(data.routes[0].duration / 60)); // en minutes
@@ -107,8 +135,8 @@ const MapRouteComponent = () => {
   };
 
   // Créer des segments colorés (simulation)
-  const createColoredSegments = (coordinates) => {
-    const segments = [];
+  const createColoredSegments = (coordinates: Coordinate[]): void => {
+    const segments: ColoredSegment[] = [];
     const segmentSize = Math.max(1, Math.floor(coordinates.length / 10));
 
     for (let i = 0; i < coordinates.length - 1; i += segmentSize) {
@@ -135,7 +163,7 @@ const MapRouteComponent = () => {
   };
 
   // Gérer le clic sur la carte
-  const handleMapPress = (event) => {
+  const handleMapPress = (event: MapPressEvent): void => {
     const coordinate = event.nativeEvent.coordinate;
 
     // Le point de départ est toujours la position actuelle
@@ -155,11 +183,11 @@ const MapRouteComponent = () => {
   };
 
   // Fonction pour trouver un itinéraire plus sûr (simulation)
-  const findSaferRoute = () => {
+  const findSaferRoute = (): void => {
     if (route.length === 0) return;
 
     // Simulation d'un itinéraire plus sûr
-    const saferSegments = coloredSegments.map((segment) => ({
+    const saferSegments: ColoredSegment[] = coloredSegments.map((segment) => ({
       ...segment,
       color: Math.random() > 0.3 ? "#4CAF50" : "#FFA726",
       isDangerous: Math.random() > 0.8,
@@ -170,7 +198,7 @@ const MapRouteComponent = () => {
     const safeSegments = saferSegments.filter((s) => !s.isDangerous).length;
     const percentage = Math.round((safeSegments / saferSegments.length) * 100);
     setSafetyPercentage(percentage);
-    setTravelTime(travelTime + Math.floor(Math.random() * 5) + 2); // Ajouter quelques minutes
+    setTravelTime((travelTime || 0) + Math.floor(Math.random() * 5) + 2); // Ajouter quelques minutes
   };
 
   return (
@@ -216,7 +244,9 @@ const MapRouteComponent = () => {
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Calcul de l'itinéraire...</Text>
+            <Text style={styles.loadingText}>
+              Calcul de l&apos;itinéraire...
+            </Text>
           </View>
         )}
 
@@ -239,7 +269,7 @@ const MapRouteComponent = () => {
 
             <TouchableOpacity
               style={styles.infoButton}
-              onPress={() => router.push("/helpScreen")}
+              onPress={() => router.push("/HelpScreen")}
             >
               <Text style={styles.infoButtonText}>Info and help</Text>
             </TouchableOpacity>

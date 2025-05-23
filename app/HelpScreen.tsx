@@ -1,7 +1,7 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { Audio } from "expo-av";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { JSX, useState } from "react";
 import {
   Alert,
   Linking,
@@ -13,52 +13,37 @@ import {
   View,
 } from "react-native";
 
-export default function HelpScreen() {
+const audioSource = require("../assets/sounds/siren.mp3");
+
+export default function HelpScreen(): JSX.Element {
   const router = useRouter();
-  const [showPopup, setShowPopup] = useState(false);
-  const [skipConfirm, setSkipConfirm] = useState(false);
-  const [sirenActive, setSirenActive] = useState(false);
-  const soundRef = useRef(null);
+  const [showPopup, setShowPopup] = useState<boolean>(false);
+  const [skipConfirm, setSkipConfirm] = useState<boolean>(false);
 
-  const startSiren = async () => {
+  // Utilisation du hook useAudioPlayer
+  const player = useAudioPlayer(audioSource);
+  const status = useAudioPlayerStatus(player);
+
+  const sirenActive = status.playing;
+
+  const startSiren = (): void => {
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: false,
-        playThroughEarpieceAndroid: false,
-      });
-
-      const { sound } = await Audio.Sound.createAsync(
-        require("../assets/sounds/siren.mp3"),
-        {
-          shouldPlay: true,
-          isLooping: true,
-          volume: 1.0,
-        }
-      );
-      soundRef.current = sound;
-      setSirenActive(true);
+      player.play();
     } catch (err) {
       console.error("Error starting siren:", err);
     }
   };
 
-  const stopSiren = async () => {
+  const stopSiren = (): void => {
     try {
-      if (soundRef.current) {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-      setSirenActive(false);
+      player.pause();
+      player.seekTo(0); // Remettre au début pour la prochaine fois
     } catch (err) {
       console.error("Error stopping siren:", err);
     }
   };
 
-  const handlePanicPress = () => {
+  const handlePanicPress = (): void => {
     if (sirenActive) {
       stopSiren();
     } else {
@@ -70,7 +55,7 @@ export default function HelpScreen() {
     }
   };
 
-  const handlePopupSirenPress = () => {
+  const handlePopupSirenPress = (): void => {
     setShowPopup(false);
     Alert.alert(
       "Important",
@@ -86,12 +71,30 @@ export default function HelpScreen() {
     );
   };
 
+  const handleLinkPress = (): void => {
+    Linking.openURL("https://data.boston.gov");
+  };
+
+  const handleCallPress = (): void => {
+    Linking.openURL("tel:911");
+  };
+
+  const toggleSkipConfirm = (): void => {
+    setSkipConfirm(!skipConfirm);
+  };
+
+  const closePopup = (): void => {
+    setShowPopup(false);
+  };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <Ionicons name="chevron-back" size={24} color="#007AFF" />
           <Text style={styles.backText}>Return</Text>
         </TouchableOpacity>
@@ -119,9 +122,10 @@ export default function HelpScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Information:</Text>
           <Text style={styles.sectionText}>
-            The route is considered moderately safe. One accident was reported in the area within
-            the past three months, but no other major incidents have been recorded recently.
-            Street lighting is generally adequate. Still, remain cautious in less busy areas.
+            The route is considered moderately safe. One accident was reported
+            in the area within the past three months, but no other major
+            incidents have been recorded recently. Street lighting is generally
+            adequate. Still, remain cautious in less busy areas.
           </Text>
         </View>
 
@@ -130,18 +134,24 @@ export default function HelpScreen() {
           <Text style={styles.sectionTitle}>Data Sources:</Text>
           <Text style={styles.sectionText}>
             The information used in this app comes from the official platform{" "}
-            <Text style={styles.linkText} onPress={() => Linking.openURL("https://data.boston.gov")}>
+            <Text style={styles.linkText} onPress={handleLinkPress}>
               data.boston.gov
             </Text>
             .{"\n"}
             The datasets include:
           </Text>
-          <Text style={styles.bullet}>• Streetlights (location and outage reports)</Text>
-          <Text style={styles.bullet}>• Crimes (type, location, and date of incidents)</Text>
-          <Text style={styles.bullet}>• Traffic accidents (severity, frequency, and affected areas)</Text>
+          <Text style={styles.bullet}>
+            • Streetlights (location and outage reports)
+          </Text>
+          <Text style={styles.bullet}>
+            • Crimes (type, location, and date of incidents)
+          </Text>
+          <Text style={styles.bullet}>
+            • Traffic accidents (severity, frequency, and affected areas)
+          </Text>
           <Text style={styles.sectionText}>
-            These public datasets are regularly updated and enable the generation of safer nighttime
-            routes based on real-world data.
+            These public datasets are regularly updated and enable the
+            generation of safer nighttime routes based on real-world data.
           </Text>
         </View>
       </ScrollView>
@@ -153,10 +163,7 @@ export default function HelpScreen() {
             {sirenActive ? "Stop panic siren" : "Panic siren"}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.callButton}
-          onPress={() => Linking.openURL("tel:911")}
-        >
+        <TouchableOpacity style={styles.callButton} onPress={handleCallPress}>
           <Text style={styles.callText}>Call 911</Text>
         </TouchableOpacity>
       </View>
@@ -165,38 +172,39 @@ export default function HelpScreen() {
       <Modal visible={showPopup} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.popup}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowPopup(false)}
-            >
+            <TouchableOpacity style={styles.closeButton} onPress={closePopup}>
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
 
             <Text style={styles.popupText}>
-              By pressing this button, you trigger a loud, piercing alarm designed to scare off
-              anyone following you and immediately draw attention to your location.
+              By pressing this button, you trigger a loud, piercing alarm
+              designed to scare off anyone following you and immediately draw
+              attention to your location.
             </Text>
 
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => setSkipConfirm(!skipConfirm)}
+              onPress={toggleSkipConfirm}
             >
               <MaterialIcons
                 name={skipConfirm ? "check-box" : "check-box-outline-blank"}
                 size={28}
                 color={skipConfirm ? "#666" : "#999"}
               />
-              <Text style={{ marginLeft: 8, flex: 1 }}>
+              <Text style={styles.checkboxText}>
                 Skip confirmation and trigger the alarm immediately next time.
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.popupSirenButton} onPress={handlePopupSirenPress}>
+            <TouchableOpacity
+              style={styles.popupSirenButton}
+              onPress={handlePopupSirenPress}
+            >
               <Text style={styles.panicText}>Panic siren</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.popupCancelButton}
-              onPress={() => setShowPopup(false)}
+              onPress={closePopup}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -341,6 +349,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
+  },
+  checkboxText: {
+    marginLeft: 8,
+    flex: 1,
+    fontSize: 16,
+    color: "#222",
   },
   popupSirenButton: {
     backgroundColor: "#E53935",
