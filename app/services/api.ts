@@ -126,7 +126,13 @@ export class RouteService {
       status: "success",
       route: {
         distance: route.distance,
-        estimated_time: Math.round(route.duration / 60),
+        estimated_time: {
+          formatted: route.estimated_time.formatted,
+          hours: Math.floor(route.duration / 3600),
+          minutes: Math.floor((route.duration % 3600) / 60),
+          total_minutes: Math.floor(route.duration / 60),
+          total_seconds: route.duration,
+        },
         risk_score: 0.3, // Default moderate risk for OSRM routes
         risk_level: "medium",
         segments: [
