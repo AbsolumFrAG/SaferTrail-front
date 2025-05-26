@@ -1,205 +1,134 @@
-import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import { FC, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import MapView, {
-  MapPressEvent,
-  Marker,
-  Polyline,
-  Region,
-} from "react-native-maps";
+import { FC, useCallback, useEffect, useMemo } from "react";
+import { Alert, StyleSheet, View } from "react-native";
+import MapView, { MapPressEvent } from "react-native-maps";
 
-interface Coordinate {
-  latitude: number;
-  longitude: number;
-}
+import { useLocation } from "../hooks/useLocation";
+import { useMapRegion } from "../hooks/useMapRegion";
+import { useRoute } from "../hooks/useRoute";
+import { useStreetSegments } from "../hooks/useStreetSegments";
 
-interface ColoredSegment {
-  coordinates: Coordinate[];
-  color: string;
-  isDangerous: boolean;
-}
+import { ErrorBoundary } from "./ErrorBoundary";
+import { MapMarkers } from "./map/MapMarkers";
+import { MapPolylines } from "./map/MapPolylines";
+import { InstructionMessage } from "./ui/InstructionMessage";
+import { LoadingIndicator } from "./ui/LoadingIndicator";
+import { RouteInfo } from "./ui/RouteInfo";
 
-interface OSRMResponse {
-  code: string;
-  routes: {
-    geometry: {
-      coordinates: number[][];
-    };
-    duration: number;
-  }[];
-}
+import { COLORS } from "../constants";
 
-const MapRouteComponent: FC = () => {
-  const [region, setRegion] = useState<Region>({
-    latitude: 48.8566,
-    longitude: 2.3522,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
-
-  const [startPoint, setStartPoint] = useState<Coordinate | null>(null);
-  const [endPoint, setEndPoint] = useState<Coordinate | null>(null);
-  const [route, setRoute] = useState<Coordinate[]>([]);
-  const [coloredSegments, setColoredSegments] = useState<ColoredSegment[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [travelTime, setTravelTime] = useState<number | null>(null);
-  const [safetyPercentage, setSafetyPercentage] = useState<number | null>(null);
+const MapRouteComponentInner: FC = () => {
   const router = useRouter();
 
-  // Fonction pour mettre à jour la position actuelle
-  const updateCurrentLocation = async (): Promise<void> => {
-    try {
-      const location = await Location.getCurrentPositionAsync({});
-      const newPosition: Coordinate = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-      setStartPoint(newPosition);
+  // Custom hooks
+  const {
+    currentLocation,
+    loading: locationLoading,
+    permissionGranted,
+  } = useLocation();
 
-      // Recalculer l'itinéraire si une destination est définie
-      if (endPoint) {
-        await getRoute(newPosition, endPoint);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour de la position:", error);
-    }
-  };
+  const { segments: streetSegments, loading: segmentsLoading } =
+    useStreetSegments();
 
-  // Demander la permission de localisation et définir le point de départ
+  const {
+    startPoint,
+    endPoint,
+    coloredSegments,
+    routeInfo,
+    loading: routeLoading,
+    setStartPoint,
+    setDestination,
+    findSaferRoute,
+  } = useRoute();
+
+  const { region, centerOnLocation } = useMapRegion();
+
+  // Set start point when current location is available
   useEffect(() => {
-    (async (): Promise<void> => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission refusée", "Permission de localisation refusée");
+    if (currentLocation && !startPoint) {
+      setStartPoint(currentLocation);
+      centerOnLocation(currentLocation);
+    }
+  }, [currentLocation, startPoint, setStartPoint, centerOnLocation]);
+
+  // Handle map press
+  const handleMapPress = useCallback(
+    (event: MapPressEvent) => {
+      if (!permissionGranted || !currentLocation) {
+        Alert.alert(
+          "Location Required",
+          "Please enable location permissions to set a destination"
+        );
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
-      const currentPosition: Coordinate = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
+      const coordinate = event.nativeEvent.coordinate;
+      setDestination(coordinate);
+    },
+    [permissionGranted, currentLocation, setDestination]
+  );
 
-      setRegion({
-        ...region,
-        latitude: currentPosition.latitude,
-        longitude: currentPosition.longitude,
-      });
+  // Handle safer route search
+  const handleFindSaferRoute = useCallback(() => {
+    if (routeLoading) return;
+    findSaferRoute();
+  }, [routeLoading, findSaferRoute]);
 
-      // Définir automatiquement la position actuelle comme point de départ
-      setStartPoint(currentPosition);
-    })();
-  }, []);
+  // Handle help navigation
+  const handleShowHelp = useCallback(() => {
+    router.push("/HelpScreen");
+  }, [router]);
 
-  // Fonction pour obtenir l'itinéraire depuis OSRM
-  const getRoute = async (
-    start: Coordinate,
-    end: Coordinate
-  ): Promise<void> => {
-    setLoading(true);
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
-
-      const response = await fetch(url);
-      const data: OSRMResponse = await response.json();
-
-      if (data.code === "Ok" && data.routes.length > 0) {
-        const coordinates: Coordinate[] =
-          data.routes[0].geometry.coordinates.map((coord: number[]) => ({
-            latitude: coord[1],
-            longitude: coord[0],
-          }));
-
-        setRoute(coordinates);
-        setTravelTime(Math.round(data.routes[0].duration / 60)); // en minutes
-
-        // Créer des segments colorés (simulation des zones dangereuses)
-        createColoredSegments(coordinates);
-      } else {
-        Alert.alert("Erreur", "Impossible de calculer l'itinéraire");
-      }
-    } catch (error) {
-      console.error("Erreur lors du calcul de l'itinéraire:", error);
-      Alert.alert("Erreur", "Erreur de réseau");
-    } finally {
-      setLoading(false);
+  // Memoized instruction message
+  const instructionMessage = useMemo(() => {
+    if (!permissionGranted) {
+      return "Location permission required...";
     }
-  };
-
-  // Créer des segments colorés (simulation)
-  const createColoredSegments = (coordinates: Coordinate[]): void => {
-    const segments: ColoredSegment[] = [];
-    const segmentSize = Math.max(1, Math.floor(coordinates.length / 10));
-
-    for (let i = 0; i < coordinates.length - 1; i += segmentSize) {
-      const endIndex = Math.min(i + segmentSize, coordinates.length - 1);
-      const segment = coordinates.slice(i, endIndex + 1);
-
-      // Simulation: certains segments sont "dangereux" (orange/rouge)
-      const isDangerous = Math.random() > 0.7;
-      const color = isDangerous ? "#FF6B35" : "#4CAF50";
-
-      segments.push({
-        coordinates: segment,
-        color: color,
-        isDangerous: isDangerous,
-      });
+    if (locationLoading) {
+      return "Getting your location...";
     }
-
-    setColoredSegments(segments);
-
-    // Calculer le pourcentage de sécurité
-    const safeSegments = segments.filter((s) => !s.isDangerous).length;
-    const percentage = Math.round((safeSegments / segments.length) * 100);
-    setSafetyPercentage(percentage);
-  };
-
-  // Gérer le clic sur la carte
-  const handleMapPress = (event: MapPressEvent): void => {
-    const coordinate = event.nativeEvent.coordinate;
-
-    // Le point de départ est toujours la position actuelle
-    // Un clic définit/redéfinit seulement le point d'arrivée
-    setEndPoint(coordinate);
-
-    // S'il y a un point de départ (position actuelle), calculer l'itinéraire
-    if (startPoint) {
-      getRoute(startPoint, coordinate);
+    if (!endPoint && currentLocation) {
+      return "Touch the map to set your destination";
     }
+    return "";
+  }, [permissionGranted, locationLoading, endPoint, currentLocation]);
 
-    // Reset les données précédentes s'il y en avait
-    setRoute([]);
-    setColoredSegments([]);
-    setTravelTime(null);
-    setSafetyPercentage(null);
-  };
+  // Render loading overlay for segments
+  const renderSegmentsLoading = useMemo(() => {
+    if (!segmentsLoading) return null;
 
-  // Fonction pour trouver un itinéraire plus sûr (simulation)
-  const findSaferRoute = (): void => {
-    if (route.length === 0) return;
+    return (
+      <LoadingIndicator message="Loading safety data..." size="small" overlay />
+    );
+  }, [segmentsLoading]);
 
-    // Simulation d'un itinéraire plus sûr
-    const saferSegments: ColoredSegment[] = coloredSegments.map((segment) => ({
-      ...segment,
-      color: Math.random() > 0.3 ? "#4CAF50" : "#FFA726",
-      isDangerous: Math.random() > 0.8,
-    }));
+  // Render route loading
+  const renderRouteLoading = useMemo(() => {
+    if (!routeLoading) return null;
 
-    setColoredSegments(saferSegments);
+    return <LoadingIndicator message="Calculating route..." />;
+  }, [routeLoading]);
 
-    const safeSegments = saferSegments.filter((s) => !s.isDangerous).length;
-    const percentage = Math.round((safeSegments / saferSegments.length) * 100);
-    setSafetyPercentage(percentage);
-    setTravelTime((travelTime || 0) + Math.floor(Math.random() * 5) + 2); // Ajouter quelques minutes
-  };
+  // Render route info
+  const renderRouteInfo = useMemo(() => {
+    if (!routeInfo) return null;
+
+    return (
+      <RouteInfo
+        routeInfo={routeInfo}
+        onFindSaferRoute={handleFindSaferRoute}
+        onShowHelp={handleShowHelp}
+        loading={routeLoading}
+      />
+    );
+  }, [routeInfo, handleFindSaferRoute, handleShowHelp, routeLoading]);
+
+  // Render instruction message
+  const renderInstruction = useMemo(() => {
+    if (!instructionMessage) return null;
+
+    return <InstructionMessage message={instructionMessage} />;
+  }, [instructionMessage]);
 
   return (
     <View style={styles.container}>
@@ -207,98 +136,43 @@ const MapRouteComponent: FC = () => {
         style={styles.map}
         region={region}
         onPress={handleMapPress}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
+        showsUserLocation={permissionGranted}
+        showsMyLocationButton={permissionGranted}
+        followsUserLocation={false}
+        showsCompass={true}
+        showsScale={true}
+        mapType="standard"
       >
-        {/* Marqueur de départ (position actuelle) */}
-        {startPoint && (
-          <Marker
-            coordinate={startPoint}
-            title="Ma position"
-            description="Point de départ"
-          >
-            <View style={styles.currentLocationMarker}>
-              <View style={styles.currentLocationDot} />
-            </View>
-          </Marker>
-        )}
+        <MapPolylines
+          streetSegments={streetSegments}
+          coloredSegments={coloredSegments}
+        />
 
-        {/* Marqueur d'arrivée */}
-        {endPoint && <Marker coordinate={endPoint} pinColor="red" />}
-
-        {/* Segments colorés de l'itinéraire */}
-        {coloredSegments.map((segment, index) => (
-          <Polyline
-            key={index}
-            coordinates={segment.coordinates}
-            strokeColor={segment.color}
-            strokeWidth={6}
-            lineCap="round"
-            lineJoin="round"
-          />
-        ))}
+        <MapMarkers startPoint={startPoint} endPoint={endPoint} />
       </MapView>
 
-      {/* Interface utilisateur en bas */}
+      {renderSegmentsLoading}
+
       <View style={styles.bottomContainer}>
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>
-              Calcul de l&apos;itinéraire...
-            </Text>
-          </View>
-        )}
-
-        {travelTime && safetyPercentage !== null && (
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={styles.timeText}>{travelTime} min</Text>
-              <View style={styles.safetyContainer}>
-                <View style={styles.safetyDot} />
-                <Text style={styles.safetyText}>{safetyPercentage}% safe</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.saferWayButton}
-              onPress={findSaferRoute}
-            >
-              <Text style={styles.saferWayText}>Safer way</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={() => router.push("/HelpScreen")}
-            >
-              <Text style={styles.infoButtonText}>Info and help</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!endPoint && startPoint && (
-          <View style={styles.instructionContainer}>
-            <Text style={styles.instructionText}>
-              Touchez la carte pour définir votre destination
-            </Text>
-          </View>
-        )}
-
-        {!startPoint && (
-          <View style={styles.instructionContainer}>
-            <Text style={styles.instructionText}>Localisation en cours...</Text>
-          </View>
-        )}
+        {renderRouteLoading}
+        {renderRouteInfo}
+        {renderInstruction}
       </View>
     </View>
   );
 };
 
+// Main component with error boundary
+const MapRouteComponent: FC = () => (
+  <ErrorBoundary>
+    <MapRouteComponentInner />
+  </ErrorBoundary>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
-    paddingTop: 0, // Assure qu'il n'y a pas de padding top
+    backgroundColor: COLORS.BLACK,
   },
   map: {
     flex: 1,
@@ -312,98 +186,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 20,
-  },
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: 20,
-  },
-  loadingText: {
-    color: "white",
-    marginTop: 10,
-    fontSize: 16,
-  },
-  infoContainer: {
-    alignItems: "center",
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 20,
-  },
-  timeText: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  safetyContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  safetyDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#4CAF50",
-    marginRight: 8,
-  },
-  safetyText: {
-    color: "white",
-    fontSize: 18,
-  },
-  saferWayButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    marginBottom: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  saferWayText: {
-    color: "black",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  infoButton: {
-    backgroundColor: "#E0E0E0",
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    width: "100%",
-    alignItems: "center",
-  },
-  infoButtonText: {
-    color: "black",
-    fontSize: 16,
-  },
-  instructionContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  instructionText: {
-    color: "white",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  currentLocationMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(74, 175, 255, 0.3)",
-    borderWidth: 2,
-    borderColor: "#4AAFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  currentLocationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#4AAFFF",
   },
 });
 
