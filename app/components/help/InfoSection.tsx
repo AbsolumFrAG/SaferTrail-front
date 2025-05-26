@@ -11,10 +11,7 @@ export const InfoSection = memo(() => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Information:</Text>
       <Text style={styles.sectionText}>
-        The route is considered moderately safe. One accident was reported in
-        the area within the past three months, but no other major incidents have
-        been recorded recently. Street lighting is generally adequate. Still,
-        remain cautious in less busy areas.
+        This application was designed to improve pedestrian safety in Boston, especially at night. Unlike traditional navigation apps that prioritize speed, our intelligent assistant suggests safer nighttime routes. By analyzing public data such as reported crimes, traffic accidents, and streetlight outages, the app identifies high-risk areas and offers a safer path. The goal: to reduce urban incidents and help everyone move through public spaces with greater confidence.
       </Text>
     </View>
 
