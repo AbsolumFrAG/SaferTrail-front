@@ -68,7 +68,9 @@ async function fetchWithRetry<T>(
     return await response.json();
   } catch (error) {
     if (retries > 0 && error instanceof Error) {
-      console.warn(`Request failed, retrying... (${retries} attempts left)`);
+      if (__DEV__) {
+        console.log(`Request failed, retrying... (${retries} attempts left)`);
+      }
       await sleep(RETRY_DELAY);
       return fetchWithRetry<T>(url, options, retries - 1);
     }
@@ -77,6 +79,59 @@ async function fetchWithRetry<T>(
 }
 
 export class RouteService {
+  static async getOpenRouteServiceRoute(
+    start: Coordinate,
+    end: Coordinate
+  ): Promise<SafeRouteResponse> {
+    const API_KEY = process.env.EXPO_PUBLIC_OPENROUTE_API_KEY;
+    if (!API_KEY) {
+      throw new Error("OpenRouteService API key is not configured");
+    }
+
+    const url = `https://api.openrouteservice.org/v2/directions/foot-walking?api_key=${API_KEY}&start=${start.longitude},${start.latitude}&end=${end.longitude},${end.latitude}`;
+
+    const response = await fetchWithRetry<any>(url, {
+      headers: {
+        Accept:
+          "application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8",
+      },
+    });
+
+    if (!response.features || !response.features.length) {
+      throw new Error("OpenRouteService route calculation failed");
+    }
+
+    const route = response.features[0];
+    const properties = route.properties;
+    const duration = Math.round(properties.segments[0].duration / 60); // Convertir en minutes
+
+    // Convertir OpenRouteService response à notre format
+    return {
+      status: "success",
+      route: {
+        distance: properties.segments[0].distance,
+        estimated_time: {
+          formatted: `${Math.floor(duration / 60)}h ${duration % 60}min`,
+          hours: Math.floor(duration / 60),
+          minutes: duration % 60,
+          total_minutes: duration,
+          total_seconds: properties.segments[0].duration,
+        },
+        risk_score: 0, // Pas de score de risque pour l'itinéraire rapide
+        risk_level: "none", // Pas de niveau de risque pour l'itinéraire rapide
+        segments: [
+          {
+            street: "Unknown Street",
+            length: properties.segments[0].distance,
+            risk: 0,
+            coordinates: route.geometry.coordinates,
+          },
+        ],
+      },
+      time: new Date().toISOString(),
+    };
+  }
+
   static async getSafeRoute(
     start: Coordinate,
     end: Coordinate,
@@ -100,52 +155,13 @@ export class RouteService {
         return result;
       }
 
-      throw new Error("Invalid response from safe-route API");
+      throw new Error("ROUTE_IMPOSSIBLE");
     } catch (error) {
-      console.error("Safe route API failed, attempting fallback:", error);
-      return this.getOSRMRoute(start, end);
+      if (__DEV__) {
+        console.log("Safe route API failed:", error);
+      }
+      throw new Error("ROUTE_IMPOSSIBLE");
     }
-  }
-
-  static async getOSRMRoute(
-    start: Coordinate,
-    end: Coordinate
-  ): Promise<SafeRouteResponse> {
-    const url = `https://router.project-osrm.org/route/v1/foot/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
-
-    const response = await fetchWithRetry<any>(url);
-
-    if (response.code !== "Ok" || !response.routes.length) {
-      throw new Error("OSRM route calculation failed");
-    }
-
-    const route = response.routes[0];
-
-    // Convert OSRM response to our format
-    return {
-      status: "success",
-      route: {
-        distance: route.distance,
-        estimated_time: {
-          formatted: route.estimated_time.formatted,
-          hours: Math.floor(route.duration / 3600),
-          minutes: Math.floor((route.duration % 3600) / 60),
-          total_minutes: Math.floor(route.duration / 60),
-          total_seconds: route.duration,
-        },
-        risk_score: 0.3, // Default moderate risk for OSRM routes
-        risk_level: "medium",
-        segments: [
-          {
-            street: "Unknown Street",
-            length: route.distance,
-            risk: 0.3,
-            coordinates: route.geometry.coordinates,
-          },
-        ],
-      },
-      time: new Date().toISOString(),
-    };
   }
 
   static clearCache(): void {

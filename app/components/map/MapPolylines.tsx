@@ -1,4 +1,4 @@
-import { memo } from "react";
+import React, { memo } from "react";
 import { Polyline } from "react-native-maps";
 import { COLORS, RISK_THRESHOLDS } from "../../constants";
 import { ColoredSegment, StreetSegment } from "../../types";
@@ -31,9 +31,14 @@ const StreetSegmentPolyline = memo<{ segment: StreetSegment; index: number }>(
     }
 
     const coordinates = convertGeoJSONCoordinates(segment.geometry.coordinates);
-    const color =
+    const baseColor =
       segment.properties?.color ||
       getColorFromRiskScore(segment.properties?.risk_score || 0);
+
+    // Créer une version plus claire de la couleur
+    const color = baseColor.includes("rgb")
+      ? baseColor.replace("rgb", "rgba").replace(")", ", 0.3)")
+      : baseColor;
 
     return (
       <Polyline

@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { COLORS, RISK_THRESHOLDS } from "../constants";
-import { RouteService } from "../services/api";
+import { RouteService, StreetSegmentService } from "../services/api";
 import {
   ColoredSegment,
   Coordinate,
@@ -29,49 +29,92 @@ export function useRoute() {
   const [coloredSegments, setColoredSegments] = useState<ColoredSegment[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isSafeRoute, setIsSafeRoute] = useState(false);
 
-  const processRouteResponse = useCallback((data: SafeRouteResponse) => {
-    const segments = data.route.segments;
-    const routeSegments: ColoredSegment[] = [];
-    const allCoordinates: Coordinate[] = [];
+  // Charger les segments de rue au démarrage
+  useEffect(() => {
+    const loadStreetSegments = async () => {
+      try {
+        const segments = await StreetSegmentService.getStreetSegments();
+        const coloredSegments: ColoredSegment[] = segments.map((segment) => ({
+          coordinates: convertGeoJSONCoordinates(segment.geometry.coordinates),
+          color: getColorFromRiskScore(segment.properties.risk_score),
+          isDangerous: segment.properties.risk_score >= RISK_THRESHOLDS.MEDIUM,
+          streetName: segment.properties.street_name || "Unknown Street",
+          risk: segment.properties.risk_score,
+        }));
+        setColoredSegments(coloredSegments);
+      } catch (error) {
+        if (__DEV__) {
+          console.log("Failed to load street segments:", error);
+        }
+      }
+    };
 
-    segments.forEach((segment) => {
-      const coordinates = convertGeoJSONCoordinates(segment.coordinates);
-      const color = getColorFromRiskScore(segment.risk);
-      const isDangerous = segment.risk >= RISK_THRESHOLDS.MEDIUM;
+    loadStreetSegments();
+  }, []);
 
-      routeSegments.push({
-        coordinates,
-        color,
-        isDangerous,
-        streetName: segment.street,
-        risk: segment.risk,
+  const processRouteResponse = useCallback(
+    (data: SafeRouteResponse, isFastRoute: boolean = false) => {
+      if (!data || !data.route) return;
+
+      const segments = data.route.segments;
+      const routeSegments: ColoredSegment[] = [];
+      const allCoordinates: Coordinate[] = [];
+
+      segments.forEach((segment) => {
+        const coordinates = convertGeoJSONCoordinates(segment.coordinates);
+        const color = isFastRoute
+          ? COLORS.MEDIUM_RISK
+          : getColorFromRiskScore(segment.risk);
+        const isDangerous = segment.risk >= RISK_THRESHOLDS.MEDIUM;
+
+        routeSegments.push({
+          coordinates,
+          color,
+          isDangerous,
+          streetName: segment.street,
+          risk: segment.risk,
+        });
+
+        allCoordinates.push(...coordinates);
       });
 
-      allCoordinates.push(...coordinates);
-    });
+      setRoute(allCoordinates);
+      setColoredSegments(routeSegments);
+      setRouteInfo({
+        travelTime: Math.round(data.route.estimated_time.minutes),
+        safetyPercentage: Math.round((1 - data.route.risk_score) * 100),
+        distance: data.route.distance,
+        riskLevel: data.route.risk_level,
+      });
+    },
+    []
+  );
 
-    setColoredSegments(routeSegments);
-    setRoute(allCoordinates);
-
-    setRouteInfo({
-      travelTime: Math.round(data.route.estimated_time.minutes),
-      safetyPercentage: Math.round((1 - data.route.risk_score) * 100),
-      distance: data.route.distance,
-      riskLevel: data.route.risk_level,
-    });
+  const resetRoute = useCallback(() => {
+    setEndPoint(null);
+    setRoute([]);
+    setColoredSegments([]);
+    setRouteInfo(null);
   }, []);
 
   const calculateRoute = useCallback(
-    async (start: Coordinate, end: Coordinate, riskWeight = 0.7) => {
+    async (start: Coordinate, end: Coordinate, isFastRoute: boolean = true) => {
+      if (!start || !end) return;
+
       setLoading(true);
       setRoute([]);
       setColoredSegments([]);
       setRouteInfo(null);
 
       try {
-        const data = await RouteService.getSafeRoute(start, end, riskWeight);
-        processRouteResponse(data);
+        const data = isFastRoute
+          ? await RouteService.getOpenRouteServiceRoute(start, end)
+          : await RouteService.getSafeRoute(start, end, 0.9);
+
+        processRouteResponse(data, isFastRoute);
+        setIsSafeRoute(!isFastRoute);
       } catch (error) {
         console.error("Route calculation failed:", error);
         Alert.alert("Error", "Failed to calculate route");
@@ -83,27 +126,89 @@ export function useRoute() {
   );
 
   const findSaferRoute = useCallback(async () => {
-    if (!startPoint || !endPoint) return;
+    if (!startPoint || !endPoint || loading) return;
 
-    await calculateRoute(startPoint, endPoint, 0.9); // Higher risk weight for safer route
-  }, [startPoint, endPoint, calculateRoute]);
+    setLoading(true);
+    setColoredSegments([]);
+
+    try {
+      if (isSafeRoute) {
+        const data = await RouteService.getOpenRouteServiceRoute(
+          startPoint,
+          endPoint
+        );
+        processRouteResponse(data, true);
+        setIsSafeRoute(false);
+      } else {
+        const data = await RouteService.getSafeRoute(startPoint, endPoint, 0.9);
+        processRouteResponse(data, false);
+        setIsSafeRoute(true);
+      }
+    } catch (error) {
+      resetRoute();
+
+      if (error instanceof Error && error.message === "ROUTE_IMPOSSIBLE") {
+        Alert.alert(
+          "Unreachable route",
+          "Sorry, no walking route was found for this destination. Please choose a closer or more accessible destination.",
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert("Error", "Unable to calculate route. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    startPoint,
+    endPoint,
+    isSafeRoute,
+    loading,
+    processRouteResponse,
+    resetRoute,
+  ]);
 
   const setDestination = useCallback(
-    (destination: Coordinate) => {
+    async (destination: Coordinate) => {
+      if (!startPoint) return;
+
       setEndPoint(destination);
-      if (startPoint) {
-        calculateRoute(startPoint, destination);
+      setLoading(true);
+
+      try {
+        // Si c'est le premier clic (pas de route existante), forcer l'itinéraire sécurisé
+        const shouldUseSafeRoute = route.length === 0 ? true : isSafeRoute;
+
+        const data = shouldUseSafeRoute
+          ? await RouteService.getSafeRoute(startPoint, destination, 0.9)
+          : await RouteService.getOpenRouteServiceRoute(
+              startPoint,
+              destination
+            );
+
+        setColoredSegments([]);
+        processRouteResponse(data, !shouldUseSafeRoute);
+        setIsSafeRoute(shouldUseSafeRoute);
+      } catch (error) {
+        // Réinitialiser complètement l'état en cas d'erreur
+        resetRoute();
+
+        // Afficher un message d'erreur approprié
+        if (error instanceof Error && error.message === "ROUTE_IMPOSSIBLE") {
+          Alert.alert(
+            "Unreachable route",
+            "Sorry, no walking route was found for this destination. Please choose a closer or more accessible destination.",
+            [{ text: "OK" }]
+          );
+        } else {
+          Alert.alert("Error", "Unable to calculate route. Please try again.");
+        }
+      } finally {
+        setLoading(false);
       }
     },
-    [startPoint, calculateRoute]
+    [startPoint, isSafeRoute, route.length, processRouteResponse, resetRoute]
   );
-
-  const resetRoute = useCallback(() => {
-    setEndPoint(null);
-    setRoute([]);
-    setColoredSegments([]);
-    setRouteInfo(null);
-  }, []);
 
   const hasRoute = useMemo(() => route.length > 0, [route.length]);
   const canCalculateRoute = useMemo(
@@ -120,6 +225,7 @@ export function useRoute() {
     loading,
     hasRoute,
     canCalculateRoute,
+    isSafeRoute,
     setStartPoint,
     setDestination,
     calculateRoute,

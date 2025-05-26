@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { FC, useCallback, useEffect, useMemo } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View, TouchableOpacity, Text } from "react-native";
 import MapView, { MapPressEvent } from "react-native-maps";
 
 import { useLocation } from "../hooks/useLocation";
@@ -39,6 +39,7 @@ const MapRouteComponentInner: FC = () => {
     setStartPoint,
     setDestination,
     findSaferRoute,
+    isSafeRoute,
   } = useRoute();
 
   const { region, centerOnLocation } = useMapRegion();
@@ -53,7 +54,7 @@ const MapRouteComponentInner: FC = () => {
 
   // Handle map press
   const handleMapPress = useCallback(
-    (event: MapPressEvent) => {
+    async (event: MapPressEvent) => {
       if (!permissionGranted || !currentLocation) {
         Alert.alert(
           "Location Required",
@@ -63,7 +64,7 @@ const MapRouteComponentInner: FC = () => {
       }
 
       const coordinate = event.nativeEvent.coordinate;
-      setDestination(coordinate);
+      await setDestination(coordinate);
     },
     [permissionGranted, currentLocation, setDestination]
   );
@@ -119,9 +120,16 @@ const MapRouteComponentInner: FC = () => {
         onFindSaferRoute={handleFindSaferRoute}
         onShowHelp={handleShowHelp}
         loading={routeLoading}
+        isSafeRoute={isSafeRoute}
       />
     );
-  }, [routeInfo, handleFindSaferRoute, handleShowHelp, routeLoading]);
+  }, [
+    routeInfo,
+    handleFindSaferRoute,
+    handleShowHelp,
+    routeLoading,
+    isSafeRoute,
+  ]);
 
   // Render instruction message
   const renderInstruction = useMemo(() => {
@@ -157,6 +165,9 @@ const MapRouteComponentInner: FC = () => {
         {renderRouteLoading}
         {renderRouteInfo}
         {renderInstruction}
+        <TouchableOpacity style={styles.infoButton} onPress={handleShowHelp}>
+          <Text style={styles.infoButtonText}>Info and Help</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -186,6 +197,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 20,
+  },
+  infoButton: {
+    backgroundColor: "#E0E0E0",
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    width: "100%",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  infoButtonText: {
+    color: COLORS.BLACK,
+    fontSize: 16,
   },
 });
 

@@ -8,36 +8,56 @@ interface RouteInfoProps {
   onFindSaferRoute: () => void;
   onShowHelp: () => void;
   loading: boolean;
+  isSafeRoute: boolean;
 }
 
+const getSafetyColor = (percentage: number): string => {
+  if (percentage >= 80) return COLORS.LOW_RISK;
+  if (percentage >= 50) return COLORS.MEDIUM_RISK;
+  return COLORS.HIGH_RISK;
+};
+
 export const RouteInfo = memo<RouteInfoProps>(
-  ({ routeInfo, onFindSaferRoute, onShowHelp, loading }) => (
-    <View style={styles.container}>
-      <View style={styles.infoRow}>
-        <Text style={styles.timeText}>{routeInfo.travelTime} min</Text>
-        <View style={styles.safetyContainer}>
-          <View style={styles.safetyDot} />
-          <Text style={styles.safetyText}>
-            {routeInfo.safetyPercentage}% safe
-          </Text>
+  ({ routeInfo, onFindSaferRoute, onShowHelp, loading, isSafeRoute }) => {
+    return (
+      <View style={styles.container}>
+        <View style={styles.infoRow}>
+          <Text style={styles.timeText}>{routeInfo.travelTime} min</Text>
+          {isSafeRoute && (
+            <View style={styles.safetyContainer}>
+              <View
+                style={[
+                  styles.safetyDot,
+                  {
+                    backgroundColor: getSafetyColor(routeInfo.safetyPercentage),
+                  },
+                ]}
+              />
+              <Text style={styles.safetyText}>
+                {routeInfo.safetyPercentage}% safe
+              </Text>
+            </View>
+          )}
         </View>
+
+        <TouchableOpacity
+          style={[
+            styles.saferWayButton,
+            isSafeRoute && styles.fasterWayButton,
+            loading && styles.buttonDisabled,
+          ]}
+          onPress={onFindSaferRoute}
+          disabled={loading}
+        >
+          <Text
+            style={[styles.saferWayText, isSafeRoute && styles.fasterWayText]}
+          >
+            {isSafeRoute ? "Faster way" : "Safer way"}
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={[styles.saferWayButton, loading && styles.buttonDisabled]}
-        onPress={onFindSaferRoute}
-        disabled={loading}
-      >
-        <Text style={styles.saferWayText}>
-          {loading ? "Finding safer route..." : "Safer way"}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.infoButton} onPress={onShowHelp}>
-        <Text style={styles.infoButtonText}>Info and help</Text>
-      </TouchableOpacity>
-    </View>
-  )
+    );
+  }
 );
 
 RouteInfo.displayName = "RouteInfo";
@@ -82,6 +102,9 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
+  fasterWayButton: {
+    backgroundColor: COLORS.MEDIUM_RISK,
+  },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -90,16 +113,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  infoButton: {
-    backgroundColor: "#E0E0E0",
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-    width: "100%",
-    alignItems: "center",
-  },
-  infoButtonText: {
-    color: COLORS.BLACK,
-    fontSize: 16,
+  fasterWayText: {
+    color: COLORS.WHITE,
   },
 });
