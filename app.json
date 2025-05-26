@@ -4,6 +4,7 @@
     "slug": "safertrail",
     "version": "1.0.0",
     "orientation": "portrait",
+    "main": "./app/app.js",
     "icon": "./assets/images/icon.png",
     "scheme": "safertrail",
     "userInterfaceStyle": "automatic",
@@ -33,10 +34,21 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to location when open and in the background."
+        }
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "permissions": [
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION"
+    ]
   }
 }
