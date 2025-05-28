@@ -16,3 +16,5 @@ export const PERFORMANCE_CONFIG = {
   MAX_CACHED_ROUTES: 10,
   CLEANUP_INTERVAL: 30 * 60 * 1000, // 30 minutes
 } as const;
+
+export default PERFORMANCE_CONFIG;

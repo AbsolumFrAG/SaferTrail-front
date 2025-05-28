@@ -3,7 +3,7 @@ import {
   GeoJSONResponse,
   SafeRouteResponse,
   StreetSegment,
-} from "../types";
+} from "../../types";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -202,4 +202,16 @@ export class StreetSegmentService {
   static clearCache(): void {
     apiCache.clear();
   }
+}
+
+export default {
+  RouteService,
+  StreetSegmentService,
+  fetchWithRetry,
+  sleep,
+  apiCache,
+  CACHE_DURATION,
+  MAX_RETRIES,
+  RETRY_DELAY,
+  API_BASE_URL,
 }

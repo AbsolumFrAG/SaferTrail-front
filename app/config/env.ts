@@ -19,3 +19,5 @@ const getEnvironment = (): Environment => {
 };
 
 export const ENV = getEnvironment();
+
+export default ENV;

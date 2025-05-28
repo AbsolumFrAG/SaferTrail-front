@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../../constants";
-import { RouteInfo as RouteInfoType } from "../../types";
+import { RouteInfo as RouteInfoType } from "../../../types";
 
 interface RouteInfoProps {
   routeInfo: RouteInfoType;
@@ -17,7 +17,7 @@ const getSafetyColor = (percentage: number): string => {
   return COLORS.HIGH_RISK;
 };
 
-export const RouteInfo = memo<RouteInfoProps>(
+const RouteInfo = memo<RouteInfoProps>(
   ({ routeInfo, onFindSaferRoute, onShowHelp, loading, isSafeRoute }) => {
     return (
       <View style={styles.container}>
@@ -117,3 +117,5 @@ const styles = StyleSheet.create({
     color: COLORS.WHITE,
   },
 });
+
+export default RouteInfo;

@@ -3,17 +3,17 @@ import { FC, useCallback, useEffect, useMemo } from "react";
 import { Alert, StyleSheet, View, TouchableOpacity, Text } from "react-native";
 import MapView, { MapPressEvent } from "react-native-maps";
 
-import { useLocation } from "../hooks/useLocation";
-import { useMapRegion } from "../hooks/useMapRegion";
-import { useRoute } from "../hooks/useRoute";
-import { useStreetSegments } from "../hooks/useStreetSegments";
+import useLocation from "../hooks/useLocation";
+import useMapRegion from "../hooks/useMapRegion";
+import useRoute from "../hooks/useRoute";
+import useStreetSegments from "../hooks/useStreetSegments";
 
-import { ErrorBoundary } from "./ErrorBoundary";
-import { MapMarkers } from "./map/MapMarkers";
-import { MapPolylines } from "./map/MapPolylines";
-import { InstructionMessage } from "./ui/InstructionMessage";
-import { LoadingIndicator } from "./ui/LoadingIndicator";
-import { RouteInfo } from "./ui/RouteInfo";
+import ErrorBoundary from "./ErrorBoundary";
+import MapMarkers from "./map/MapMarkers";
+import MapPolylines from "./map/MapPolylines";
+import InstructionMessage from "./ui/InstructionMessage";
+import LoadingIndicator from "./ui/LoadingIndicator";
+import RouteInfo from "./ui/RouteInfo";
 
 import { COLORS } from "../constants";
 

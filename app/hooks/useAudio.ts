@@ -4,7 +4,7 @@ import { Alert } from "react-native";
 
 const audioSource = require("../../assets/sounds/siren.mp3");
 
-export function useAudio() {
+function useAudio() {
   const player = useAudioPlayer(audioSource);
   const status = useAudioPlayerStatus(player);
 
@@ -45,3 +45,5 @@ export function useAudio() {
     toggleSiren,
   };
 }
+
+export default useAudio;

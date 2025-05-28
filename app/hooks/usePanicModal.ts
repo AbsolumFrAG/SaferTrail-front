@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-export function usePanicModal() {
+function usePanicModal() {
   const [isVisible, setIsVisible] = useState(false);
   const [skipConfirm, setSkipConfirm] = useState(false);
 
@@ -24,3 +24,5 @@ export function usePanicModal() {
     toggleSkipConfirm,
   };
 }
+
+export default usePanicModal;

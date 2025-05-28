@@ -7,7 +7,7 @@ import {
   Coordinate,
   RouteInfo,
   SafeRouteResponse,
-} from "../types";
+} from "../../types";
 
 const getColorFromRiskScore = (score: number): string => {
   if (score >= RISK_THRESHOLDS.HIGH) return COLORS.HIGH_RISK;
@@ -22,7 +22,7 @@ const convertGeoJSONCoordinates = (coordinates: number[][]): Coordinate[] => {
   }));
 };
 
-export function useRoute() {
+function useRoute() {
   const [startPoint, setStartPoint] = useState<Coordinate | null>(null);
   const [endPoint, setEndPoint] = useState<Coordinate | null>(null);
   const [route, setRoute] = useState<Coordinate[]>([]);
@@ -233,3 +233,5 @@ export function useRoute() {
     resetRoute,
   };
 }
+
+export default useRoute;

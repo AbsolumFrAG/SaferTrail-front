@@ -19,3 +19,9 @@ export const DEFAULT_REGION = {
   latitudeDelta: 0.0922,
   longitudeDelta: 0.0421,
 } as const;
+
+export default {
+  COLORS,
+  RISK_THRESHOLDS,
+  DEFAULT_REGION,
+}

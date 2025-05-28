@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { StreetSegmentService } from "../services/api";
-import { StreetSegment } from "../types";
+import { StreetSegment } from "../../types";
 
-export function useStreetSegments() {
+function useStreetSegments() {
   const [segments, setSegments] = useState<StreetSegment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,3 +39,5 @@ export function useStreetSegments() {
     refreshSegments,
   };
 }
+
+export default useStreetSegments;

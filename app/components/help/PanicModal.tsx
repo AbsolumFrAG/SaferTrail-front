@@ -17,7 +17,7 @@ interface PanicModalProps {
   onStartSiren: () => void;
 }
 
-export const PanicModal = memo<PanicModalProps>(
+const PanicModal = memo<PanicModalProps>(
   ({ visible, skipConfirm, onClose, onToggleSkipConfirm, onStartSiren }) => {
     const handleSirenPress = (): void => {
       onClose();
@@ -143,3 +143,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+export default PanicModal;

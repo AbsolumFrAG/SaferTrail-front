@@ -9,13 +9,13 @@ import {
   View,
 } from "react-native";
 
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { EmergencyButtons } from "./components/help/EmergencyButtons";
-import { InfoSection } from "./components/help/InfoSection";
-import { PanicModal } from "./components/help/PanicModal";
-import { SafetyLegend } from "./components/help/SafetyLegend";
-import { useAudio } from "./hooks/useAudio";
-import { usePanicModal } from "./hooks/usePanicModal";
+import ErrorBoundary from "./components/ErrorBoundary";
+import EmergencyButtons from "./components/help/EmergencyButtons";
+import InfoSection from "./components/help/InfoSection";
+import PanicModal from "./components/help/PanicModal";
+import SafetyLegend from "./components/help/SafetyLegend";
+import useAudio from "./hooks/useAudio";
+import usePanicModal from "./hooks/usePanicModal";
 
 import { COLORS } from "./constants";
 

@@ -1,7 +1,7 @@
 import * as Location from "expo-location";
-import { Coordinate, LocationPermissionResult } from "../types";
+import { Coordinate, LocationPermissionResult } from "../../types";
 
-export class LocationService {
+export default class LocationService {
   static async requestLocationPermission(): Promise<LocationPermissionResult> {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();

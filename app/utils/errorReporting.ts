@@ -74,3 +74,5 @@ export const reportError = (
     ...context,
   });
 };
+
+export default errorReporter;

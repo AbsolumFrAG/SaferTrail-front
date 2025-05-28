@@ -37,3 +37,9 @@ export const throttle = <T extends (...args: any[]) => any>(
     }
   };
 };
+
+export default {
+  runAfterInteractions,
+  debounce,
+  throttle,
+}

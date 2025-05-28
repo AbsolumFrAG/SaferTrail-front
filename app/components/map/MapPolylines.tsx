@@ -1,7 +1,7 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import { Polyline } from "react-native-maps";
 import { COLORS, RISK_THRESHOLDS } from "../../constants";
-import { ColoredSegment, StreetSegment } from "../../types";
+import { ColoredSegment, StreetSegment } from "../../../types";
 
 interface MapPolylinesProps {
   streetSegments: StreetSegment[];
@@ -72,7 +72,7 @@ const RouteSegmentPolyline = memo<{ segment: ColoredSegment; index: number }>(
 
 RouteSegmentPolyline.displayName = "RouteSegmentPolyline";
 
-export const MapPolylines = memo<MapPolylinesProps>(
+const MapPolylines = memo<MapPolylinesProps>(
   ({ streetSegments, coloredSegments }) => (
     <>
       {streetSegments.map((segment, index) => (
@@ -95,3 +95,5 @@ export const MapPolylines = memo<MapPolylinesProps>(
 );
 
 MapPolylines.displayName = "MapPolylines";
+
+export default MapPolylines;

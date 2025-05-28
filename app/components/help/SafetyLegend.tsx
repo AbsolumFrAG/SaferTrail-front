@@ -16,7 +16,7 @@ const LegendItem = memo<LegendItemProps>(({ color, label }) => (
 
 LegendItem.displayName = "LegendItem";
 
-export const SafetyLegend = memo(() => (
+const SafetyLegend = memo(() => (
   <View style={styles.container}>
     <LegendItem color={COLORS.LOW_RISK} label="Safe" />
     <LegendItem color={COLORS.MEDIUM_RISK} label="Less safe" />
@@ -47,3 +47,5 @@ const styles = StyleSheet.create({
     color: COLORS.WHITE,
   },
 });
+
+export default SafetyLegend;

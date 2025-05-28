@@ -38,3 +38,5 @@ class Analytics {
 }
 
 export const analytics = new Analytics();
+
+export default analytics;

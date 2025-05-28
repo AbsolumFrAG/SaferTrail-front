@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Marker } from "react-native-maps";
-import { Coordinate } from "../../types";
+import { Coordinate } from "../../../types";
 
 interface MapMarkersProps {
   startPoint: Coordinate | null;
@@ -16,7 +16,7 @@ const CurrentLocationMarker = memo(() => (
 
 CurrentLocationMarker.displayName = "CurrentLocationMarker";
 
-export const MapMarkers = memo<MapMarkersProps>(({ startPoint, endPoint }) => (
+const MapMarkers = memo<MapMarkersProps>(({ startPoint, endPoint }) => (
   <>
     {startPoint && (
       <Marker
@@ -53,3 +53,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#4AAFFF",
   },
 });
+
+export default MapMarkers;

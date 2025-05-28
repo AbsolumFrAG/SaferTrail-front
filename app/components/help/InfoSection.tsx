@@ -6,7 +6,7 @@ const handleLinkPress = (): void => {
   Linking.openURL("https://data.boston.gov");
 };
 
-export const InfoSection = memo(() => (
+const InfoSection = memo(() => (
   <>
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Information:</Text>
@@ -71,3 +71,5 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
+
+export default InfoSection;

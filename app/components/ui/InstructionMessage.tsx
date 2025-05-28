@@ -6,7 +6,7 @@ interface InstructionMessageProps {
   message: string;
 }
 
-export const InstructionMessage = memo<InstructionMessageProps>(
+const InstructionMessage = memo<InstructionMessageProps>(
   ({ message }) => (
     <View style={styles.container}>
       <Text style={styles.text}>{message}</Text>
@@ -29,3 +29,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+export default InstructionMessage;

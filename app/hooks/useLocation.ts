@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { LocationService } from "../services/location";
-import { Coordinate } from "../types";
+import LocationService from "../services/location";
+import { Coordinate } from "../../types";
 
-export function useLocation() {
+function useLocation() {
   const [currentLocation, setCurrentLocation] = useState<Coordinate | null>(
     null
   );
@@ -57,3 +57,5 @@ export function useLocation() {
     refreshLocation,
   };
 }
+
+export default useLocation;

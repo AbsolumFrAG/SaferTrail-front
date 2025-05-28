@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { Region } from "react-native-maps";
 import { DEFAULT_REGION } from "../constants";
-import { Coordinate } from "../types";
+import { Coordinate } from "../../types";
 
-export function useMapRegion() {
+function useMapRegion() {
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
 
   const updateRegion = useCallback((newRegion: Partial<Region>) => {
@@ -59,3 +59,5 @@ export function useMapRegion() {
     centerOnRoute,
   };
 }
+
+export default useMapRegion;

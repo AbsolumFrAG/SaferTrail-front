@@ -70,3 +70,5 @@ class MemoryManager {
 }
 
 export const memoryManager = MemoryManager.getInstance();
+
+export default memoryManager;

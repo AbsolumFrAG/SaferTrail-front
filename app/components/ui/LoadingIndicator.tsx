@@ -8,7 +8,7 @@ interface LoadingIndicatorProps {
   overlay?: boolean;
 }
 
-export const LoadingIndicator = memo<LoadingIndicatorProps>(
+const LoadingIndicator = memo<LoadingIndicatorProps>(
   ({ message, size = "large", overlay = false }) => {
     const containerStyle = overlay
       ? [styles.container, styles.overlay]
@@ -48,3 +48,5 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
+
+export default LoadingIndicator;

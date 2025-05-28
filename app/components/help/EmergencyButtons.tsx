@@ -16,7 +16,7 @@ const handleCallPress = (): void => {
   Linking.openURL("tel:911");
 };
 
-export const EmergencyButtons = memo<EmergencyButtonsProps>(
+const EmergencyButtons = memo<EmergencyButtonsProps>(
   ({ onPanicPress, sirenActive }) => (
     <View style={styles.container}>
       <TouchableOpacity style={styles.panicButton} onPress={onPanicPress}>
@@ -67,3 +67,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+export default EmergencyButtons;
