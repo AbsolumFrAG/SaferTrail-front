@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { FC, useCallback, useEffect, useMemo } from "react";
-import { Alert, StyleSheet, View, TouchableOpacity, Text } from "react-native";
-import MapView, { MapPressEvent } from "react-native-maps";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import MapView, { MapPressEvent, PROVIDER_GOOGLE } from "react-native-maps";
 
 import useLocation from "../hooks/useLocation";
 import useMapRegion from "../hooks/useMapRegion";
@@ -11,6 +11,7 @@ import useStreetSegments from "../hooks/useStreetSegments";
 import ErrorBoundary from "./ErrorBoundary";
 import MapMarkers from "./map/MapMarkers";
 import MapPolylines from "./map/MapPolylines";
+import AddressSearchInput from "./ui/AddressSearchInput";
 import InstructionMessage from "./ui/InstructionMessage";
 import LoadingIndicator from "./ui/LoadingIndicator";
 import RouteInfo from "./ui/RouteInfo";
@@ -80,6 +81,22 @@ const MapRouteComponentInner: FC = () => {
     router.push("/HelpScreen");
   }, [router]);
 
+  // Handle address selection from search input
+  const handleAddressSelect = useCallback(
+    async (coordinate: { latitude: number; longitude: number }) => {
+      if (!permissionGranted || !currentLocation) {
+        Alert.alert(
+          "Location Required",
+          "Please enable location permissions to set a destination"
+        );
+        return;
+      }
+
+      await setDestination(coordinate);
+    },
+    [permissionGranted, currentLocation, setDestination]
+  );
+
   // Memoized instruction message
   const instructionMessage = useMemo(() => {
     if (!permissionGranted) {
@@ -89,7 +106,7 @@ const MapRouteComponentInner: FC = () => {
       return "Getting your location...";
     }
     if (!endPoint && currentLocation) {
-      return "Touch the map to set your destination";
+      return "Search for an address or touch the map to set your destination";
     }
     return "";
   }, [permissionGranted, locationLoading, endPoint, currentLocation]);
@@ -140,6 +157,15 @@ const MapRouteComponentInner: FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Address Search Input */}
+      <View style={styles.searchContainer}>
+        <AddressSearchInput
+          onAddressSelect={handleAddressSelect}
+          currentLocation={currentLocation}
+          placeholder="Search for a destination..."
+        />
+      </View>
+
       <MapView
         style={styles.map}
         region={region}
@@ -150,6 +176,7 @@ const MapRouteComponentInner: FC = () => {
         showsCompass={true}
         showsScale={true}
         mapType="standard"
+        provider={PROVIDER_GOOGLE}
       >
         <MapPolylines
           streetSegments={streetSegments}
@@ -184,6 +211,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.BLACK,
+  },
+  searchContainer: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    right: 20,
+    zIndex: 1000,
   },
   map: {
     flex: 1,

@@ -83,7 +83,7 @@ function useRoute() {
       setRoute(allCoordinates);
       setColoredSegments(routeSegments);
       setRouteInfo({
-        travelTime: Math.round(data.route.estimated_time.minutes),
+        travelTime: Math.round(data.route.estimated_time.total_minutes),
         safetyPercentage: Math.round((1 - data.route.risk_score) * 100),
         distance: data.route.distance,
         riskLevel: data.route.risk_level,

@@ -17,12 +17,29 @@ const getSafetyColor = (percentage: number): string => {
   return COLORS.HIGH_RISK;
 };
 
+const formatTravelTime = (totalMinutes: number): string => {
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${minutes}min`;
+};
+
 const RouteInfo = memo<RouteInfoProps>(
   ({ routeInfo, onFindSaferRoute, onShowHelp, loading, isSafeRoute }) => {
     return (
       <View style={styles.container}>
         <View style={styles.infoRow}>
-          <Text style={styles.timeText}>{routeInfo.travelTime} min</Text>
+          <Text style={styles.timeText}>
+            {formatTravelTime(routeInfo.travelTime)}
+          </Text>
           {isSafeRoute && (
             <View style={styles.safetyContainer}>
               <View
