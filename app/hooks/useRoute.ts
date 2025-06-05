@@ -31,7 +31,7 @@ function useRoute() {
   const [loading, setLoading] = useState(false);
   const [isSafeRoute, setIsSafeRoute] = useState(false);
 
-  // Charger les segments de rue au démarrage
+  // Load street segments at startup
   useEffect(() => {
     const loadStreetSegments = async () => {
       try {
@@ -176,7 +176,7 @@ function useRoute() {
       setLoading(true);
 
       try {
-        // Si c'est le premier clic (pas de route existante), forcer l'itinéraire sécurisé
+        // If it's the first click (no existing route), force safe route
         const shouldUseSafeRoute = route.length === 0 ? true : isSafeRoute;
 
         const data = shouldUseSafeRoute
@@ -190,10 +190,10 @@ function useRoute() {
         processRouteResponse(data, !shouldUseSafeRoute);
         setIsSafeRoute(shouldUseSafeRoute);
       } catch (error) {
-        // Réinitialiser complètement l'état en cas d'erreur
+        // Completely reset state in case of error
         resetRoute();
 
-        // Afficher un message d'erreur approprié
+        // Display appropriate error message
         if (error instanceof Error && error.message === "ROUTE_IMPOSSIBLE") {
           Alert.alert(
             "Unreachable route",

@@ -103,9 +103,9 @@ export class RouteService {
 
     const route = response.features[0];
     const properties = route.properties;
-    const duration = Math.round(properties.segments[0].duration / 60); // Convertir en minutes
+    const duration = Math.round(properties.segments[0].duration / 60); // Convert to minutes
 
-    // Convertir OpenRouteService response à notre format
+    // Convert OpenRouteService response to our format
     return {
       status: "success",
       route: {
@@ -117,8 +117,8 @@ export class RouteService {
           total_minutes: duration,
           total_seconds: properties.segments[0].duration,
         },
-        risk_score: 0, // Pas de score de risque pour l'itinéraire rapide
-        risk_level: "none", // Pas de niveau de risque pour l'itinéraire rapide
+        risk_score: 0, // No risk score for fast route
+        risk_level: "none", // No risk level for fast route
         segments: [
           {
             street: "Unknown Street",
@@ -214,4 +214,4 @@ export default {
   MAX_RETRIES,
   RETRY_DELAY,
   API_BASE_URL,
-}
+};

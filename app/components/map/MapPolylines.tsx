@@ -35,7 +35,7 @@ const StreetSegmentPolyline = memo<{ segment: StreetSegment; index: number }>(
       segment.properties?.color ||
       getColorFromRiskScore(segment.properties?.risk_score || 0);
 
-    // Créer une version plus claire de la couleur
+    // Create a lighter version of the color
     const color = baseColor.includes("rgb")
       ? baseColor.replace("rgb", "rgba").replace(")", ", 0.3)")
       : baseColor;
