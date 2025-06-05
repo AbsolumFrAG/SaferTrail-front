@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { COLORS, RISK_THRESHOLDS } from "../constants";
 import { RouteService, StreetSegmentService } from "../services/api";
@@ -210,11 +210,8 @@ function useRoute() {
     [startPoint, isSafeRoute, route.length, processRouteResponse, resetRoute]
   );
 
-  const hasRoute = useMemo(() => route.length > 0, [route.length]);
-  const canCalculateRoute = useMemo(
-    () => startPoint !== null && endPoint !== null,
-    [startPoint, endPoint]
-  );
+  const hasRoute = route.length > 0;
+  const canCalculateRoute = startPoint !== null && endPoint !== null;
 
   return {
     startPoint,
