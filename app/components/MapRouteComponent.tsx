@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { FC, useCallback, useEffect, useMemo } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import MapView, { MapPressEvent, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { MapPressEvent } from "react-native-maps";
 
 import useLocation from "../hooks/useLocation";
 import useMapRegion from "../hooks/useMapRegion";
@@ -176,7 +176,6 @@ const MapRouteComponentInner: FC = () => {
         showsCompass={true}
         showsScale={true}
         mapType="standard"
-        provider={PROVIDER_GOOGLE}
       >
         <MapPolylines
           streetSegments={streetSegments}
