@@ -25,12 +25,15 @@ const HelpScreenInner: FC = () => {
   const {
     isVisible: modalVisible,
     skipConfirm,
+    isLoaded,
     showModal,
     hideModal,
     toggleSkipConfirm,
   } = usePanicModal();
 
   const handlePanicPress = useCallback((): void => {
+    if (!isLoaded) return;
+
     if (isPlaying) {
       toggleSiren();
     } else if (skipConfirm) {
@@ -38,7 +41,7 @@ const HelpScreenInner: FC = () => {
     } else {
       showModal();
     }
-  }, [isPlaying, skipConfirm, toggleSiren, startSiren, showModal]);
+  }, [isLoaded, isPlaying, skipConfirm, toggleSiren, startSiren, showModal]);
 
   const handleBack = useCallback(() => {
     router.back();

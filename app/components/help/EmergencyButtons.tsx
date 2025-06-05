@@ -10,6 +10,7 @@ import {
 interface EmergencyButtonsProps {
   onPanicPress: () => void;
   sirenActive: boolean;
+  disabled?: boolean;
 }
 
 const handleCallPress = (): void => {
@@ -17,15 +18,25 @@ const handleCallPress = (): void => {
 };
 
 const EmergencyButtons = memo<EmergencyButtonsProps>(
-  ({ onPanicPress, sirenActive }) => (
+  ({ onPanicPress, sirenActive, disabled = false }) => (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.panicButton} onPress={onPanicPress}>
-        <Text style={styles.panicText}>
+      <TouchableOpacity
+        style={[styles.panicButton, disabled && styles.buttonDisabled]}
+        onPress={onPanicPress}
+        disabled={disabled}
+      >
+        <Text style={[styles.panicText, disabled && styles.textDisabled]}>
           {sirenActive ? "Stop panic siren" : "Panic siren"}
         </Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.callButton} onPress={handleCallPress}>
-        <Text style={styles.callText}>Call 911</Text>
+      <TouchableOpacity
+        style={[styles.callButton, disabled && styles.buttonDisabled]}
+        onPress={handleCallPress}
+        disabled={disabled}
+      >
+        <Text style={[styles.callText, disabled && styles.textDisabled]}>
+          Call 911
+        </Text>
       </TouchableOpacity>
     </View>
   )
@@ -65,6 +76,12 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  textDisabled: {
+    opacity: 0.7,
   },
 });
 
